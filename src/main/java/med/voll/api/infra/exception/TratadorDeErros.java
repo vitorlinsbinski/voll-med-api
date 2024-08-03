@@ -1,7 +1,6 @@
 package med.voll.api.infra.exception;
 
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -52,6 +51,11 @@ public class TratadorDeErros {
     public ResponseEntity<String> tratarErro500(Exception exception) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 "Erro: " + exception.getLocalizedMessage());
+    }
+
+    @ExceptionHandler(ValidacaoException.class)
+    public ResponseEntity<DadosExcecaoGenerica> tratarErroDeValidacao(ValidacaoException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new DadosExcecaoGenerica(exception.getLocalizedMessage()));
     }
 
     private record DadosErroValidacao(

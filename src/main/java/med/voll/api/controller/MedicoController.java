@@ -25,7 +25,7 @@ public class MedicoController {
         this.repository.save(medico);
 
         var uri =
-                uriBuilder.path("/medicos/{id}").buildAndExpand(medico.getId()).toUri();
+                uriBuilder.path("/medicos/{consultaId}").buildAndExpand(medico.getId()).toUri();
 
         return ResponseEntity.created(uri).body(new DadosDetalhamentoMedico(medico));
     }
