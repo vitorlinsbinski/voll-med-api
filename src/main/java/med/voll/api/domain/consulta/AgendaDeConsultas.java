@@ -8,6 +8,8 @@ import med.voll.api.infra.exception.ValidacaoException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -51,15 +53,39 @@ public class AgendaDeConsultas {
     }
 
     private Medico escolherMedico(DadosAgendamentoConsulta dados) {
-        if(dados.idMedico() != null) {
-            return this.medicoRepository.getReferenceById(dados.idMedico());
+        if (dados.idMedico() != null) {
+            var medico = this.medicoRepository.getReferenceById(dados.idMedico());
+            validarDisponibilidadeMedico(medico, dados.data());
+            return medico;
         }
 
-        if(dados.especialidade() == null) {
-            throw new ValidacaoException("Especialidade é obrigatória quando " +
-                    "médico não for escolhido.");
+        if (dados.especialidade() == null) {
+            throw new ValidacaoException("Especialidade é obrigatória quando médico não for escolhido.");
         }
 
-        return this.medicoRepository.getRandomByEspecialidadeAndData(dados.especialidade(), dados.data());
+        var medicoAleatorio = this.medicoRepository.getRandomByEspecialidadeAndData(dados.especialidade(), dados.data());
+        validarDisponibilidadeMedico(medicoAleatorio, dados.data());
+        return medicoAleatorio;
     }
+
+    private void validarDisponibilidadeMedico(Medico medico, LocalDateTime dataConsulta) {
+        if(medico == null) {
+            throw new ValidacaoException("Não foi possível encontrar um " +
+                    "médico nessa data e horário.");
+        }
+
+        var consultaMaisRecenteDoMedico =
+                this.consultaRepository.getTop1ConsultaByMedicoIdOrderByDataDesc(medico.getId());
+
+        if (consultaMaisRecenteDoMedico != null) {
+            var dataConsultaMaisRecente = consultaMaisRecenteDoMedico.getData();
+            var diferencaEmMinutosEntreConsultas = Duration.between(dataConsultaMaisRecente, dataConsulta).toMinutes();
+
+            if (diferencaEmMinutosEntreConsultas < 60) {
+                throw new ValidacaoException("O médico escolhido para essa data e horário está indisponível.");
+            }
+        }
+    }
+
+
 }
